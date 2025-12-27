@@ -492,4 +492,26 @@ body {
         height: auto !important;
         aspect-ratio: 1/1;
     }
+
+    /* Mobilde puzzle taşma ve kaymayı düzeltme */
+    #puzzle-board {
+        width: calc(85px * 3);
+        height: calc(85px * 3);
+        box-sizing: border-box;
+    }
+
+    #piece-repository {
+        width: calc(85px * 3);
+        max-width: 95vw;
+    }
+
+    .game-area {
+        padding: 10px;
+        gap: 12px;
+    }
+
+    /* Mobilde body'nin taşan içeriği kaydırılabilsin */
+    body {
+        overflow: auto;
+    }
 }
