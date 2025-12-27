@@ -10,12 +10,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnOpenPuzzle = document.getElementById('btn-open-puzzle');
     const btnBackMenu = document.getElementById('back-to-menu');
     const btnBackMenuPuzzle = document.getElementById('back-to-menu-puzzle');
+    const btnReplay = document.getElementById('btn-replay'); // Yeni buton
 
     // --- PUZZLE AYARLARI ---
     const rows = 3;
     const cols = 3;
-    const pieceSize = 120; 
-    const puzzleImageSrc = 'img/puzzle-full.jpg'; // RESMİ BURAYA KOY
+    // pieceSize değişkenine artık ihtiyacımız yok, yüzdelik sistem kullanacağız.
+    const puzzleImageSrc = 'img/puzzle-full.jpg'; 
 
     // --- MENÜ GEÇİŞLERİ ---
     btnOpenBook.addEventListener('click', () => {
@@ -40,50 +41,113 @@ document.addEventListener('DOMContentLoaded', () => {
         winnerModal.classList.add('hidden');
     });
 
-    // --- KİTAP KODLARI (ESKİ SİSTEM) ---
+    // Modal içindeki tekrar oyna butonu
+    if(btnReplay) {
+        btnReplay.addEventListener('click', () => {
+            location.reload();
+        });
+    }
+
+    // -----------------------------------------------------
+    // --- KİTAP KODLARI (HİBRİT: 3D & MOBİL SLIDER) ---
+    // -----------------------------------------------------
     const prevBtn = document.querySelector('#prev-btn');
     const nextBtn = document.querySelector('#next-btn');
     const book = document.querySelector('#book');
     const papers = document.querySelectorAll('.paper');
     
-    if(papers.length > 0) {
-        let currentLocation = 1;
-        let numOfPapers = papers.length;
-        let maxLocation = numOfPapers + 1;
-        
-        // Z-Index Başlat
+    // Mobil elemanlar
+    const mobileImg = document.getElementById('mobile-current-img');
+    const pageIndicator = document.getElementById('page-indicator');
+    
+    // Tüm resim kaynaklarını topla (Sırasıyla: p1-front, p1-back, p2-front...)
+    let allImages = [];
+    papers.forEach(p => {
+        const fImg = p.querySelector('.front img');
+        const bImg = p.querySelector('.back img');
+        if(fImg) allImages.push(fImg.src);
+        if(bImg) allImages.push(bImg.src);
+    });
+
+    // Durum değişkenleri
+    let currentPaper = 1; // Masaüstü için (Kağıt sayısı: 1-12)
+    let currentImageIndex = 0; // Mobil için (Resim sayısı: 0-23)
+    let numOfPapers = papers.length;
+    let maxPaper = numOfPapers + 1;
+
+    // Başlangıç Ayarları
+    function initBook() {
+        // Masaüstü Z-Index
         papers.forEach((paper, index) => { 
             paper.style.zIndex = numOfPapers - index; 
         });
-
-        nextBtn.addEventListener('click', () => {
-            if(currentLocation < maxLocation) {
-                let currentPaper = papers[currentLocation - 1];
-                currentPaper.classList.add('flipped');
-                currentPaper.style.zIndex = currentLocation; 
-                if(currentLocation === 1) book.style.transform = "translateX(50%)";
-                currentLocation++;
-            }
-        });
-
-        prevBtn.addEventListener('click', () => {
-            if(currentLocation > 1) {
-                let previousPaper = papers[currentLocation - 2];
-                previousPaper.classList.remove('flipped');
-                previousPaper.style.zIndex = numOfPapers - (currentLocation - 2);
-                if(currentLocation === 2) book.style.transform = "translateX(0%)";
-                currentLocation--;
-            }
-        });
+        
+        // Mobil İlk Resim
+        if(allImages.length > 0) {
+            updateMobileView();
+        }
     }
 
+    function updateMobileView() {
+        if(mobileImg && allImages.length > 0) {
+            mobileImg.src = allImages[currentImageIndex];
+            if(pageIndicator) {
+                pageIndicator.textContent = `${currentImageIndex + 1} / ${allImages.length}`;
+            }
+        }
+    }
+
+    // Ekran genişliğini kontrol et
+    function isMobile() {
+        return window.innerWidth <= 768;
+    }
+
+    nextBtn.addEventListener('click', () => {
+        if (isMobile()) {
+            // --- MOBİL MANTIK (RESİM İLERLET) ---
+            if (currentImageIndex < allImages.length - 1) {
+                currentImageIndex++;
+                updateMobileView();
+            }
+        } else {
+            // --- MASAÜSTÜ MANTIK (KAĞIT ÇEVİR) ---
+            if(currentPaper < maxPaper) {
+                let activePaper = papers[currentPaper - 1];
+                activePaper.classList.add('flipped');
+                activePaper.style.zIndex = currentPaper; 
+                currentPaper++;
+            }
+        }
+    });
+
+    prevBtn.addEventListener('click', () => {
+        if (isMobile()) {
+            // --- MOBİL MANTIK (RESİM GERİ AL) ---
+            if (currentImageIndex > 0) {
+                currentImageIndex--;
+                updateMobileView();
+            }
+        } else {
+            // --- MASAÜSTÜ MANTIK (KAĞIT GERİ ÇEVİR) ---
+            if(currentPaper > 1) {
+                let previousPaper = papers[currentPaper - 2];
+                previousPaper.classList.remove('flipped');
+                previousPaper.style.zIndex = numOfPapers - (currentPaper - 2);
+                currentPaper--;
+            }
+        }
+    });
+
+    // Başlat
+    initBook();
+
     // -----------------------------------------------------
-    // --- PUZZLE MANTIĞI ---
+    // --- PUZZLE MANTIĞI (YENİLENMİŞ & RESPONSIVE) ---
     // -----------------------------------------------------
     let isPuzzleInitialized = false;
 
     function initPuzzle() {
-        if(isPuzzleInitialized) return;
+        if(isPuzzleInitialized) return; // Sadece bir kere başlat
 
         const board = document.getElementById('puzzle-board');
         const repo = document.getElementById('piece-repository');
@@ -92,8 +156,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const pieces = [];
 
-        // 1. REPOSITORY'E SÜRÜKLE BIRAK ÖZELLİĞİ EKLE
-        // (Parçayı geri koyabilmek için)
+        // REPOSITORY DROP ALANI
         repo.addEventListener('dragover', (e) => e.preventDefault());
         repo.addEventListener('drop', handleDrop);
 
@@ -105,6 +168,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 let slot = document.createElement('div');
                 slot.classList.add('puzzle-slot');
                 slot.dataset.expectedId = id;
+                // Mobil dokunmatik desteği için touch eventleri de eklenebilir ama şu an HTML5 DragDrop kullanıyoruz.
                 slot.addEventListener('dragover', (e) => e.preventDefault());
                 slot.addEventListener('drop', handleDrop);
                 board.appendChild(slot);
@@ -112,69 +176,88 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Parça Oluştur
                 let piece = document.createElement('div');
                 piece.classList.add('puzzle-piece');
-                piece.classList.add(`shape-${id}`); // Şekil sınıfı
                 piece.draggable = true;
                 piece.dataset.id = id;
 
-                // Resmi Ayarla
+                // Resmi Yüzdelik Olarak Ayarla (Responsive Çözüm)
                 piece.style.backgroundImage = `url(${puzzleImageSrc})`;
-                piece.style.backgroundSize = `${cols * pieceSize}px ${rows * pieceSize}px`;
-                let bgX = -(c * pieceSize); 
-                let bgY = -(r * pieceSize);
-                piece.style.backgroundPosition = `${bgX}px ${bgY}px`;
+                piece.style.backgroundSize = `${cols * 100}% ${rows * 100}%`;
+                
+                // Yüzde hesaplama: (Index / (Toplam - 1)) * 100
+                // 3x3 için: 0%, 50%, 100%
+                let xPercent = (c / (cols - 1)) * 100;
+                let yPercent = (r / (rows - 1)) * 100;
+                
+                piece.style.backgroundPosition = `${xPercent}% ${yPercent}%`;
 
-                // Sürükleme
+                // Sürükleme Eventleri
                 piece.addEventListener('dragstart', (e) => {
-                    e.dataTransfer.setData('text', id);
-                    setTimeout(() => piece.style.opacity = '0.5', 0);
+                    e.dataTransfer.setData('text/plain', id); // 'text' yerine 'text/plain' daha standart
+                    // Sürüklenen elementin referansını saklayabiliriz gerekirse
+                    e.dataTransfer.effectAllowed = "move";
+                    setTimeout(() => piece.classList.add('dragging'), 0);
                 });
+
                 piece.addEventListener('dragend', () => {
-                    piece.style.opacity = '1';
+                    piece.classList.remove('dragging');
                 });
 
                 pieces.push(piece);
             }
         }
 
+        // Karıştır ve Dağıt
         pieces.sort(() => Math.random() - 0.5);
         pieces.forEach(p => repo.appendChild(p));
         isPuzzleInitialized = true;
     }
 
-    // GÜNCELLENMİŞ DROP FONKSİYONU
     function handleDrop(e) {
         e.preventDefault();
-        const draggedId = e.dataTransfer.getData('text');
+        const draggedId = e.dataTransfer.getData('text/plain');
+        // Dragging class'ına sahip olanı bulmak daha güvenli olabilir
         const draggedElement = document.querySelector(`.puzzle-piece[data-id='${draggedId}']`);
         
-        // Bırakılan yer neresi? (Hedef)
+        if(!draggedElement) return;
+
         let target = e.target;
 
-        // EĞER REPOSITORY'E (GERİ) BIRAKILIYORSA
+        // 1. REPOSITORY'E GERİ BIRAKMA
         if (target.id === 'piece-repository' || target.closest('#piece-repository')) {
             const repo = document.getElementById('piece-repository');
             repo.appendChild(draggedElement);
-            // Pozisyon ayarlarını sıfırla ki listeye düzgün girsin
-            draggedElement.style.position = 'relative';
-            draggedElement.style.top = 'auto';
-            draggedElement.style.left = 'auto';
-            draggedElement.style.margin = '0';
+            resetPieceStyle(draggedElement);
             return;
         }
 
-        // EĞER SLOT'A BIRAKILIYORSA
-        // Bazen e.target direkt slot değil, içindeki parça olabilir, closest ile slotu bulalım
+        // 2. SLOT'A BIRAKMA
+        // Hedef slot mu yoksa slotun içindeki başka bir parça mı?
         let slot = target.classList.contains('puzzle-slot') ? target : target.closest('.puzzle-slot');
 
-        if (slot && slot.children.length === 0) {
-            slot.appendChild(draggedElement);
-            // Slot içine tam oturt
-            draggedElement.style.position = 'absolute';
-            draggedElement.style.top = '0';
-            draggedElement.style.left = '0';
-            draggedElement.style.margin = '0';
-            checkWin();
+        if (slot) {
+            // Eğer slot doluysa işlem yapma (veya yer değiştirme mantığı eklenebilir, şimdilik basit tutuyoruz)
+            if (slot.children.length === 0) {
+                slot.appendChild(draggedElement);
+                lockPieceInSlot(draggedElement);
+                checkWin();
+            }
         }
+    }
+
+    function resetPieceStyle(el) {
+        el.style.position = 'relative';
+        el.style.top = 'auto';
+        el.style.left = 'auto';
+        el.style.width = ''; // CSS'ten gelen defaulta dön
+        el.style.height = '';
+    }
+
+    function lockPieceInSlot(el) {
+        el.style.position = 'absolute';
+        el.style.top = '0';
+        el.style.left = '0';
+        el.style.width = '100%'; // Slotun boyutunu al
+        el.style.height = '100%';
     }
 
     function checkWin() {
@@ -189,7 +272,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        if(correctCount === 9) {
+        if(correctCount === 9) { // 3x3 = 9
             setTimeout(() => {
                 winnerModal.classList.remove('hidden');
                 startConfetti();
@@ -199,6 +282,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function startConfetti() {
         const container = document.getElementById('confetti-container');
+        if(!container) return;
+        
         const colors = ['#f39c12', '#e74c3c', '#8e44ad', '#3498db', '#2ecc71'];
         for(let i=0; i<100; i++) {
             const conf = document.createElement('div');
