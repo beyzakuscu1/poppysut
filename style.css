@@ -90,6 +90,21 @@ body {
 }
 .logo { font-size: 1.5rem; font-weight: 900; color: #334155; letter-spacing: 1px; }
 
+.nav-logo {
+    /* 1. BOYUT AYARI */
+    height: 100px; /* Burayı artırarak logoyu büyütüp küçültebilirsin (örn: 80px, 120px dene) */
+    width: auto;   /* En-boy oranı bozulmasın */
+    object-fit: contain;
+
+    /* 2. KONUM AYARI (Sol Üste Alma) */
+    /* Navbar zaten sol üstte ama logoyu biraz daha kenarlara itmek/çekmek için bunları kullan */
+    margin-left: -10px; /* Sola daha çok yanaştırır (negatif değer sola çeker) */
+    margin-top: 5px;  /* Üstten birazcık aşağı iter */
+
+    /* Not: Eğer navbar'ın kendi içinde padding (iç boşluk) varsa,
+       onu da azaltman gerekebilir ama önce bunu dene muhtemelen yetecektir. */
+}
+
 .footer {
     position: absolute; bottom: 20px; width: 100%; text-align: center;
     color: #94a3b8; font-size: 0.85rem; z-index: 20;
